@@ -1,5 +1,5 @@
-(load-file "~/.emacs.d/emacs-config/dired-hacks-utils.el")
-(load-file "~/.emacs.d/emacs-config/dired-subtree.el")
+(load-file "~/.emacs.d.bak/emacs-config/dired-hacks-utils.el")
+(load-file "~/.emacs.d.bak/emacs-config/dired-subtree.el")
 
 (setq dired-subtree-use-backgrounds nil)
 (setq dired-subtree-line-prefix "     ")
