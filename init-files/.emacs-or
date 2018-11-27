@@ -1,0 +1,438 @@
+;; Start emacsclient server to open files from terminal into existing emacs session ;;
+(server-start)
+;; (kill-emacs) ;; shuts doen the server
+
+
+
+(custom-set-variables
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(neo-window-fixed-size nil)
+ '(org-agenda-files
+   '("~/org/calibration.org" "~/org/frontend-structure.org" "~/org/webdev.org" "~/org/site_setup.org" "~/org/oride.org" "~/org/gcal/gcal.org" "~/org/fs-team.org" "~/org/fun.org" "~/org/pay.org" "~/org/meetings.org"))
+ '(package-selected-packages
+   '(tide htmlize org-gcal magithub cmake-mode all-the-icons-dired dired-sidebar flx-ido projectile multi-term term+mux magit org-pomodoro slack with-editor web-mode use-package org-jira neotree markdown-mode magit-popup ensime all-the-icons))
+ '(scala-indent:align-forms t)
+ '(scala-indent:align-parameters t)
+ '(scala-indent:use-javadoc-style t))
+(custom-set-faces
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ )
+
+
+;; FLX-IDO is an improved ido-mode ;;
+
+(require 'flx-ido)
+(ido-mode 1)
+(ido-everywhere 1)
+(flx-ido-mode 1)
+;; disable ido faces to see flx highlights.
+(setq ido-enable-flex-matching t)
+(setq ido-use-faces nil)
+
+;;; END FLX-IDO ;;;
+
+
+;; global variables
+(setq
+ inhibit-startup-screen t
+ create-lockfiles nil
+ make-backup-files nil
+ column-number-mode t
+ scroll-error-top-bottom t
+ show-paren-delay 0.5
+ use-package-always-ensure t
+ sentence-end-double-space nil)
+
+;; buffer local variables
+(setq-default
+ indent-tabs-mode nil
+ tab-width 4
+ c-basic-offset 4)
+
+;; modes
+(electric-indent-mode 0)
+
+;; global keybindings
+
+;(global-unset-key (kbd "C-z")) ; Actually, I think I want to be able to C-z out of emacs in terminal mode
+
+
+;; the package manager
+(require 'package)
+(setq
+ package-archives '(("gnu" . "http://elpa.gnu.org/packages/")
+                    ("org" . "http://orgmode.org/elpa/")
+                    ("melpa" . "http://melpa.org/packages/")
+                    ("melpa-stable" . "http://stable.melpa.org/packages/"))
+ package-archive-priorities '(("melpa-stable" . 1)))
+
+;(package-initialize) ;Warning (package): Unnecessary call to ‘package-initialize’ in init file
+(when (not package-archive-contents)
+  (package-refresh-contents)
+  (package-install 'use-package))
+(require 'use-package)
+
+; Install ensime
+(use-package ensime
+  :ensure t
+  :pin melpa-stable)
+
+
+(load-theme 'wombat)
+
+(global-set-key (kbd "C-c a") 'org-agenda)
+(add-hook 'org-mode-hook 'org-indent-mode)
+
+
+(add-to-list 'exec-path "/usr/local/bin")
+
+(setq scroll-step            1
+      scroll-conservatively  10000)
+
+; For pretty neo-tree
+;;(use-package all-the-icons)
+
+(setq neo-theme (if (display-graphic-p) 'icons 'arrow))
+
+; Buffer navigation forward/backward
+(global-set-key (kbd "C-x n") (lambda () (interactive) (other-window 1)))
+(global-set-key (kbd "C-x p") (lambda () (interactive) (other-window -1)))
+
+; (menu-bar-mode 1)
+(tool-bar-mode -1)
+
+(add-to-list 'auto-mode-alist '("\\.scala.html\\'" . web-mode))
+
+
+;;;;;;;;;;;;;;;;;;;;;; NEOTREE SETTINGS ;;;;;;;;;;;;;;;;;;;;;  
+
+(defun custom-neotree-peek ()
+  (interactive)
+  (let ((neo-window (neo-global--get-window)))
+    (neotree-enter)
+    (select-window neo-window))
+  )
+
+(add-hook
+ 'neotree-mode-hook
+ (lambda ()
+   (define-key neotree-mode-map (kbd "TAB") 'custom-neotree-peek)))
+
+;; Set the neo-window-width to the current width of the
+;; neotree window, to trick neotree into resetting the
+;; width back to the actual window width.
+;; Fixes: https://github.com/jaypei/emacs-neotree/issues/262
+(eval-after-load "neotree"
+  '(add-to-list 'window-size-change-functions
+                (lambda (frame)
+                  (let ((neo-window (neo-global--get-window)))
+                    (unless (null neo-window)
+                      (setq neo-window-width (window-width neo-window)))))))
+
+;;(setq neo-smart-open t)
+(setq neo-smart-open nil)
+
+;;;;;;;;;;;;;;;;;;;;;; END NEOTREE SETTINGS ;;;;;;;;;;;;;;;;;;;;;
+
+(show-paren-mode 1)
+
+(setq sbt:prefer-nested-projects t)
+
+(setq jiralib-url "https://jira.internal.optimusride.com/")
+
+;(org-agenda-list)
+
+
+
+;;; SLACK INTEGRATION ;;;
+
+
+(use-package slack
+  :load-path "~/emacs-plugins-src/emacs-slack"
+  :commands (slack-start)
+  :init
+  (setq slack-buffer-emojify t) ;; if you want to enable emoji, default nil
+  (setq slack-prefer-current-team t)
+  :config
+  (slack-register-team
+   :name "emacs-slack"
+   :default t
+   :client-id "10895586724.404888336772"
+   :client-secret "bee714cea22e4e0a67479534f310ab2c"
+   :token "xoxp-10895586724-400309887671-404579221969-7dedcd7c087da282905960803cf2c50c"
+   :subscribed-channels '(team-fleet-software snackchat software engineering)
+   :full-and-display-names t)
+)
+
+(use-package alert
+  :commands (alert)
+  :init
+  (setq alert-default-style 'notifier))
+
+(setq slack-completing-read-function
+      #'ido-completing-read)
+(setq slack-buffer-function #'switch-to-buffer)
+(setq slack-prefer-current-team t)
+(setq slack-display-team-name nil)
+
+(defun slack-select-unread-rooms ()
+  (interactive)
+  (let ((team (slack-team-select)))
+    (slack-room-select
+     (cl-loop for team in (list team)
+              append (with-slots (groups ims channels) team
+                       (cl-remove-if #'(lambda (room) (not (< 0 (oref room unread-count-display))))
+                                     (append ims groups channels)))))))
+
+;;; END SLACK INTEGRATION ;;;
+
+(setq-default frame-title-format '("%f [%m]"))
+
+;; LCM files are in c format
+(add-to-list 'auto-mode-alist '("\\.lcm\\'" . c++-mode))
+
+
+
+;;;; PROJECTILE  project management ;;;;
+;; (projectile-mode +1)
+;; (define-key projectile-mode-map (kbd "s-p") 'projectile-command-map)
+;; (define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map)
+
+;; put this into your emacs dotfile
+;;(setq projectile-switch-project-action 'neotree-projectile-action)
+
+;;;; 
+
+
+;;; Dired sidebar ;;;
+;; (use-package dired-sidebar
+;;   :ensure t
+;;   :commands (dired-sidebar-toggle-sidebar)
+;;   :config
+;;   (use-package all-the-icons-dired
+;;     ;; M-x all-the-icons-install-fonts
+;;     :ensure t
+;;     :commands (all-the-icons-dired-mode)))
+
+(add-to-list 'load-path "~/.emacs.d/plugins/dired-hacks")
+(add-to-list 'load-path "~/.emacs.d/plugins/dired-sidebar")
+
+
+(add-to-list 'load-path "path from pwd")
+(require 'dired-sidebar)
+
+
+;;; END Dired sidebar ;;;
+
+
+;; Use all the icons in dired always
+(add-hook 'dired-mode-hook 'all-the-icons-dired-mode)
+
+;;; Fix Dired buffers for    All The Icons
+(defun simno-dired-mode-setup ()
+  "show less information in dired buffers"
+  (dired-hide-details-mode 1)
+  (local-set-key (kbd "TAB") 'dired-subtree-cycle)
+  (font-lock-mode 0)
+)
+
+(add-hook 'dired-mode-hook 'simno-dired-mode-setup)
+
+(defun matt-dired-revert ()
+  "revert the dired buffer"
+  (revert-buffer))
+
+(add-hook 'dired-subtree-insert-hook 'matt-dired-revert)
+(add-hook 'dired-mode-hook 'auto-revert-mode)
+(add-hook 'dired-mode-hook 'matt-dired-revert)
+
+
+(global-set-key (kbd "C-x t") (lambda () (interactive) (multi-term)))
+(neotree)
+
+
+(load-file ".emacs.d/plugins/multi-term-cfg.el")
+(load-file ".emacs.d/plugins/cmake-mode.el")
+
+
+;; Toggle window dedication : Means that this buffer will not be replaced
+
+(defun toggle-window-dedicated ()
+
+"Toggle whether the current active window is dedicated or not"
+
+(interactive)
+
+(message 
+
+ (if (let (window (get-buffer-window (current-buffer)))
+
+       (set-window-dedicated-p window 
+
+        (not (window-dedicated-p window))))
+
+    "Window '%s' is dedicated"
+
+    "Window '%s' is normal")
+
+ (current-buffer)))
+
+(global-set-key [pause] 'toggle-window-dedicated)
+
+
+;;; Javascript Indent Setting ;;;;
+(setq js-indent-level 2)
+
+
+
+;;; MAGITHUB ;;;;
+(use-package magithub
+  :after magit
+  :config
+  (magithub-feature-autoinject t)
+  (setq magithub-clone-default-directory "~/github"))
+
+
+;;; Org capture ;;;
+(setq org-default-notes-file "~/org/notes.org")
+(define-key global-map "\C-cc" 'org-capture)
+
+
+;;; Allow undoing window operations ;;;
+(winner-mode)
+
+
+;;;; ORG-GCAL ;;;;
+;;; http://cestlaz.github.io/posts/using-emacs-26-gcal/#.W3wTLRgnZhF ;;;
+
+(setq package-check-signature nil)
+
+(use-package org-gcal
+  :ensure t
+  :config
+  (setq org-gcal-client-id "210663472803-de32hldq2le9l98un89k2t2p4ja4mq3g.apps.googleusercontent.com"
+	org-gcal-client-secret "4Tmffu5NL_NRTgqeGcV93rVv"
+	org-gcal-file-alist '(("mdailis@optimusride.com" .  "~/org/gcal/gcal.org"))))
+                         ;; ("optimusride.com_v2obf0b2fhdcm9p47rl205n5ak@group.calendar.google.com" . "~/org/gcal/whereabouts.org"))))
+
+(add-hook 'org-agenda-mode-hook (lambda () (org-gcal-fetch) ))
+;; (add-hook 'org-agenda-mode-hook (lambda () (org-gcal-sync) ))
+(add-hook 'org-capture-after-finalize-hook (lambda () (org-gcal-sync) ))
+
+(setq org-capture-templates
+      '(("a" "Appointment" entry (file  "~/org/gcal/gcal.org" )
+	     "* %?\n\n%^T\n\n:PROPERTIES:\n\n:END:\n\n")
+	    ("l" "Link" entry (file+headline "~/org/links.org" "Links")
+	     "* %? %^L %^g \n%T" :prepend t)
+	    ;; ("b" "Blog idea" entry (file+headline "~/Dropbox/orgfiles/i.org" "Blog Topics:")
+	    ;;  "* %?\n%T" :prepend t)
+	    ("t" "To Do Item" entry (file+headline "~/org/i.org" "To Do")
+	     "* TODO %?\n%u" :prepend t)
+	    ("n" "Note" entry (file+headline "~/org/i.org" "Note space")
+	     "* %?\n%u" :prepend t)
+	    ("j" "Journal" entry (file+datetree "~/org/journal.org")
+	     "* %?\nEntered on %U\n  %i\n  %a")
+	    ;; ("s" "Screencast" entry (file "~/Dropbox/orgfiles/screencastnotes.org")
+	    ;;  "* %?\n%i\n")
+        ))
+
+(setq org-agenda-custom-commands
+      '(("c" "Simple agenda view"
+	 ((agenda "")
+	  (alltodo "")))))
+
+;;; Log when you toggle "DONE" entries ;;;
+;(org-agenda-log-mode)
+
+;; org hide extra stars
+(org-indent-mode)
+
+
+;; Notmuch mail
+(add-to-list 'load-path "/usr/share/emacs/site-lisp/notmuch")
+(require 'notmuch)
+
+
+;; Use msmtp for outgoing mail
+; Outgoing email (msmtp + msmtpq)
+(setq send-mail-function 'sendmail-send-it
+      sendmail-program "/usr/bin/msmtp"
+      mail-specify-envelope-from t
+      message-sendmail-envelope-from 'header
+mail-envelope-from 'header)
+
+(defun check-email ()
+  "Run the check-email shell script"
+  (interactive)
+  (let ((output (shell-command-to-string "~/check-email.sh")))
+    (message output)
+    (if (string< output "No new mail.")
+        (notmuch-tree "tag:unread"))))
+
+(defun check-slack ()
+  (interactive)
+  (slack-select-unread-rooms))
+
+(defun check-jira ()
+  (interactive)
+  (org-jira-get-issues))
+
+
+(global-set-key (kbd "C-c e") 'check-email)
+(global-set-key (kbd "C-c s") 'check-slack)
+(global-set-key (kbd "C-c j") 'check-jira)
+
+
+;;; Org babel
+(org-babel-do-load-languages 'org-babel-load-languages '(
+                                                         (python . t) 
+                                                         (dot . t))
+                             )
+
+;; (setq org-todo-keywords
+;;   '(
+;; (sequence "TODO" "DOING" "|" "DELEGATED" "POSTPONED" "DONE" "CANCELED")
+;; (sequence "SENT" "APPROVED" "|" "PAID")
+;; ))
+
+;; (setq org-todo-keyword-faces
+;;   '(("TODO" . (:foreground "#ff39a3" :weight bold))
+;; ("STARTED" . "#E35DBF")
+;; ("CANCELED" . (:foreground "white" :background "#4d4d4d" :weight bold))
+;; ("DELEGATED" . "pink")
+;; ("POSTPONED" . "#008080")))
+
+(defun setup-tide-mode ()
+  (interactive)
+  (tide-setup)
+  (flycheck-mode +1)
+  (setq flycheck-check-syntax-automatically '(save mode-enabled))
+  (eldoc-mode +1)
+  (tide-hl-identifier-mode +1)
+  ;; company is an optional dependency. You have to
+  ;; install it separately via package-install
+  ;; `M-x package-install [ret] company`
+  (company-mode +1))
+
+;; aligns annotation to the right hand side
+(setq company-tooltip-align-annotations t)
+
+;; formats the buffer before saving
+(add-hook 'before-save-hook 'tide-format-before-save)
+
+(add-hook 'typescript-mode-hook #'setup-tide-mode)
+
+(require 'web-mode)
+(add-to-list 'auto-mode-alist '("\\.tsx\\'" . web-mode))
+(add-hook 'web-mode-hook
+          (lambda ()
+            (when (string-equal "tsx" (file-name-extension buffer-file-name))
+              (setup-tide-mode))))
+;; enable typescript-tslint checker
+(flycheck-add-mode 'typescript-tslint 'web-mode)
