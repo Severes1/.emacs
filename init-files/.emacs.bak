@@ -1,0 +1,15 @@
+(load-file "~/.emacs.d.bak/emacs-config/.emacs")
+
+(global-set-key (kbd "C-c c") 'completion-at-point)
+(global-set-key (kbd "C-x x") 'ansi-term)
+
+(setq mac-option-key-is-meta nil
+      mac-command-key-is-meta t
+      mac-command-modifier 'meta
+      mac-option-modifier 'control)
+
+;; Makes the GUI emacs path the same as the terminal one
+;; (exec-path-from-shell-initialize)
+
+;; Compilation for OCaml project
+;; (add-to-list 'compilation-search-path "~/Users/matt/Drive/CCIS/static-analysis/implementations")
